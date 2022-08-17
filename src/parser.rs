@@ -9,6 +9,7 @@ use error::HttpErrno;
 use http_method::HttpMethod;
 use http_version::HttpVersion;
 use callback::{HttpParserCallback, ParseAction};
+use response_type::ResponseType;
 
 /// `HttpParserType` is a type specifies whether the parser is going to parse a HTTP request,
 /// response or both.
@@ -54,12 +55,14 @@ pub struct HttpParser {
     pub errno: Option<HttpErrno>,
     /// Status code of the response
     pub status_code: Option<u16>,          // response only
+    /// Type of response
+    pub response_type: Option<ResponseType>, //response only
     /// HTTP method of the request
     pub method: Option<HttpMethod>,        // request only
 
     /// whether the protocol is upgraded
     pub upgrade: bool,
-    
+
     // TODO make it as a constructor parameter?
     /// whether using strict parsing mode
     pub strict: bool,      // parsing using strict rules
@@ -179,13 +182,13 @@ fn is_alphanum(ch: u8) -> bool {
 }
 
 fn is_mark(ch: u8) -> bool {
-    ch == b'-' || ch == b'_' || ch == b'.' || ch == b'!' || ch == b'~' || 
+    ch == b'-' || ch == b'_' || ch == b'.' || ch == b'!' || ch == b'~' ||
         ch == b'*' || ch == b'\'' || ch == b'(' || ch == b')'
 }
 
 fn is_userinfo_char(ch: u8) -> bool {
-    is_alphanum(ch) || is_mark(ch) || ch == b'%' || 
-        ch == b';' || ch == b':' || ch == b'&' || ch == b'=' || 
+    is_alphanum(ch) || is_mark(ch) || ch == b'%' ||
+        ch == b';' || ch == b':' || ch == b'&' || ch == b'=' ||
         ch == b'+' || ch == b'$' || ch == b','
 }
 
@@ -199,8 +202,8 @@ impl HttpParser {
     /// let mut parser = HttpParser::new(HttpParserType::Request);
     /// ```
     pub fn new(tp: HttpParserType) -> HttpParser {
-        HttpParser { 
-            tp: tp,  
+        HttpParser {
+            tp: tp,
             state: match tp {
                         HttpParserType::Request     => State::StartReq,
                         HttpParserType::Response    => State::StartRes,
@@ -214,6 +217,7 @@ impl HttpParser {
             http_version: HttpVersion { major: 1, minor: 0 },
             errno: Option::None,
             status_code: Option::None,
+            response_type: Option::None,
             method: Option::None,
             upgrade: false,
             strict: true,
@@ -259,13 +263,13 @@ impl HttpParser {
         if len == 0 {    // mean EOF
             match self.state {
                 State::BodyIdentityEof => {
-                    callback!(self, cb.on_message_complete(self), 
+                    callback!(self, cb.on_message_complete(self),
                               HttpErrno::CBMessageComplete, index);
                     return 0;
                 },
-                State::Dead | 
-                State::StartReqOrRes | 
-                State::StartReq | 
+                State::Dead |
+                State::StartReqOrRes |
+                State::StartReq |
                 State::StartRes => {
                     return 0;
                 },
@@ -310,7 +314,7 @@ impl HttpParser {
                 // line) to exceed HTTP_MAX_HEADER_SIZE. This check is here to protect
                 // embedders against denial-of-service attacks where the attacker feeds
                 // us a never-ending header that the embedder keeps buffering.
-                // 
+                //
                 // This check is arguably the responsibility of embedders but we're doing
                 // it on the embedder's behalf because most won't bother and this way we
                 // make the web a little safer. HTTP_MAX_HEADER_SIZE is still far bigger
@@ -369,17 +373,18 @@ impl HttpParser {
 
                         match ch {
                             b'H' => self.state = State::ResH,
+                            b'E' => self.state = State::ResE,
                             CR | LF => (),
                             _ => {
                                 self.errno = Option::Some(HttpErrno::InvalidConstant);
                                 return index;
                             },
                         }
-                        
+
                         callback!(self, cb.on_message_begin(self), HttpErrno::CBMessageBegin, index+1);
                     },
                     State::ResH => {
-                        strict_check!(self, ch != b'T', index);                       
+                        strict_check!(self, ch != b'T', index);
                         self.state = State::ResHT;
                     },
                     State::ResHT => {
@@ -392,8 +397,30 @@ impl HttpParser {
                     },
                     State::ResHTTP => {
                         strict_check!(self, ch != b'/', index);
+                        self.response_type = Some(ResponseType::Http);
                         self.state = State::ResFirstHttpMajor;
                     },
+                    State::ResE => {
+                        strict_check!(self, ch != b'V', index);
+                        self.state = State::ResEV;
+                    }
+                    State::ResEV => {
+                        strict_check!(self, ch != b'E', index);
+                        self.state = State::ResEVE;
+                    }
+                    State::ResEVE => {
+                        strict_check!(self, ch != b'N', index);
+                        self.state = State::ResEVEN;
+                    }
+                    State::ResEVEN => {
+                        strict_check!(self, ch != b'T', index);
+                        self.state = State::ResEVENT;
+                    }
+                    State::ResEVENT => {
+                        strict_check!(self, ch != b'/', index);
+                        self.response_type = Some(ResponseType::Event);
+                        self.state = State::ResFirstHttpMajor;
+                    }
                     State::ResFirstHttpMajor => {
                         if !is_num(ch) {
                             self.errno = Option::Some(HttpErrno::InvalidVersion);
@@ -540,7 +567,7 @@ impl HttpParser {
                             self.index = 1;
                             self.state = State::ReqMethod;
 
-                            callback!(self, cb.on_message_begin(self), 
+                            callback!(self, cb.on_message_begin(self),
                                       HttpErrno::CBMessageBegin, index+1);
                         }
                     },
@@ -549,7 +576,7 @@ impl HttpParser {
                         if ch == b' ' && self.index == matcher.len() {
                             self.state = State::ReqSpacesBeforeUrl;
                         } else if self.index < matcher.len() && ch == (matcher[self.index ..].bytes().next().unwrap()) {
-                            ;
+                            //noop
                         } else if self.method == Option::Some(HttpMethod::Connect) {
                             if self.index == 1 && ch == b'H' {
                                 self.method = Option::Some(HttpMethod::Checkout);
@@ -674,7 +701,7 @@ impl HttpParser {
                                 self.http_version.major = 0;
                                 self.http_version.minor = 9;
                                 self.state = if ch == CR {
-                                    State::ReqLineAlmostDone 
+                                    State::ReqLineAlmostDone
                                 } else {
                                     State::HeaderFieldStart
                                 };
@@ -803,7 +830,7 @@ impl HttpParser {
                             }
 
                             mark!(header_field_mark, index);
-                            
+
                             self.index = 0;
                             self.state = State::HeaderField;
 
@@ -823,8 +850,8 @@ impl HttpParser {
                                 HeaderState::General => (),
                                 HeaderState::C => {
                                     self.index += 1;
-                                    self.header_state = if c == b'o'{ 
-                                        HeaderState::CO 
+                                    self.header_state = if c == b'o'{
+                                        HeaderState::CO
                                     } else {
                                         HeaderState::General
                                     };
@@ -923,7 +950,7 @@ impl HttpParser {
                     State::HeaderValueDiscardWs if ch == b' ' || ch == b'\t' ||
                         ch == CR || ch == LF => {
                         if ch == b' ' || ch == b'\t' {
-                            ;
+                            //noop
                         } else if ch == CR {
                             self.state = State::HeaderValueDiscardWsAlmostDone;
                         } else if ch == LF {
@@ -936,7 +963,7 @@ impl HttpParser {
 
                         self.state = State::HeaderValue;
                         self.index = 0;
-                        
+
                         let c: u8 = lower(ch);
 
                         match self.header_state {
@@ -1118,7 +1145,7 @@ impl HttpParser {
                         if (self.flags & Flags::Trailing.as_u8()) > 0 {
                             // End of a chunked request
                             self.new_message();
-                            callback!(self, cb.on_message_complete(self), 
+                            callback!(self, cb.on_message_complete(self),
                                       HttpErrno::CBMessageComplete, index+1);
                         } else {
                             self.state = State::HeadersDone;
@@ -1150,14 +1177,14 @@ impl HttpParser {
                         // Exit, The rest of the connect is in a different protocol
                         if self.upgrade {
                             self.new_message();
-                            callback!(self, cb.on_message_complete(self), 
+                            callback!(self, cb.on_message_complete(self),
                                       HttpErrno::CBMessageComplete, index+1);
                             return index+1;
                         }
 
                         if (self.flags & Flags::SkipBody.as_u8()) != 0 {
                             self.new_message();
-                            callback!(self, cb.on_message_complete(self), 
+                            callback!(self, cb.on_message_complete(self),
                                       HttpErrno::CBMessageComplete, index+1);
                         } else if (self.flags & Flags::Chunked.as_u8()) != 0 {
                             // chunked encoding - ignore Content-Length header
@@ -1166,7 +1193,7 @@ impl HttpParser {
                             if self.content_length == 0 {
                                 // Content-Length header given but zero: Content-Length: 0\r\n
                                 self.new_message();
-                                callback!(self, cb.on_message_complete(self), 
+                                callback!(self, cb.on_message_complete(self),
                                           HttpErrno::CBMessageComplete, index+1);
                             } else if self.content_length != ULLONG_MAX {
                                 // Content-Length header given and non-zero
@@ -1176,7 +1203,7 @@ impl HttpParser {
                                     !self.http_message_needs_eof() {
                                     // Assume content-length 0 - read the next
                                     self.new_message();
-                                    callback!(self, cb.on_message_complete(self), 
+                                    callback!(self, cb.on_message_complete(self),
                                               HttpErrno::CBMessageComplete, index+1);
                                 } else {
                                     // Read body until EOF
@@ -1215,7 +1242,7 @@ impl HttpParser {
                     },
                     State::MessageDone => {
                         self.new_message();
-                        callback!(self, cb.on_message_complete(self), 
+                        callback!(self, cb.on_message_complete(self),
                                   HttpErrno::CBMessageComplete, index+1);
                     },
                     State::ChunkSizeStart => {
@@ -1398,7 +1425,7 @@ impl HttpParser {
 
     // Our URL parser
     fn parse_url_char(&self, s: State, ch: u8) -> State {
-         
+
         if ch == b' ' || ch == b'\r' || ch == b'\n' || (self.strict && (ch == b'\t' || ch == b'\x0C')) { // '\x0C' = '\f'
             return State::Dead;
         }

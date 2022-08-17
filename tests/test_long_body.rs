@@ -19,7 +19,7 @@ fn test_no_overflow_long_body_response() {
 fn test_no_overflow_long_body(tp: HttpParserType, length: u64) {
     let mut hp = HttpParser::new(tp);
     let mut cb = helper::CallbackEmpty;
-    
+
     let line = if tp == HttpParserType::Request {
         "POST / HTTP/1.0"
     } else {
@@ -30,9 +30,9 @@ fn test_no_overflow_long_body(tp: HttpParserType, length: u64) {
                           line, length);
 
     let mut parsed = hp.execute(&mut cb, headers.as_bytes());
-    assert_eq!(parsed, headers.len()); 
+    assert_eq!(parsed, headers.len());
 
-    for _ in (0..length) {
+    for _ in 0..length {
         parsed = hp.execute(&mut cb, &[b'a']);
         assert_eq!(parsed, 1);
     }

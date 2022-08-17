@@ -9,7 +9,7 @@ pub mod helper;
 #[test]
 fn test_responses() {
     // RESPONSES
-    let responses: [helper::Message; 22] = [
+    let responses: [helper::Message; 23] = [
         helper::Message {
             name: "google 301".to_string(),
             tp: HttpParserType::Response,
@@ -664,6 +664,47 @@ fn test_responses() {
             body: "".to_string(),
             ..Default::default()
         },
+        helper::Message {
+            name: "HAP Event".to_string(),
+            tp: HttpParserType::Response,
+            raw: "EVENT/1.0 200 OK\n\
+                Content-Type: application/hap+json\n\
+                \n\
+                {\n\
+                    \"characteristics\" : [\n\
+                        {\n\
+                            \"aid\" : 1,\n\
+                            \"iid\" : 4,\n\
+                            \"value\" : 23.0\n\
+                        }\n\
+                    ]\n\
+                }\
+                ".to_string(),
+            should_keep_alive: false,
+            message_complete_on_eof: true,
+            http_version: HttpVersion { major: 1, minor: 0 },
+            status_code: Some(200),
+            response_status: {
+                    let mut v: Vec<u8> = Vec::new();
+                    for b in "OK".as_bytes() {
+                        v.push(*b);
+                    }
+                    v
+            },
+            headers: vec![
+                [ "Content-Type".to_string(), "application/hap+json".to_string() ],
+            ],
+            body: "{\n\
+                \"characteristics\" : [\n\
+                    {\n\
+                        \"aid\" : 1,\n\
+                        \"iid\" : 4,\n\
+                        \"value\" : 23.0\n\
+                    }\n\
+                ]\n\
+            }".to_string(),
+            ..Default::default()
+        },
     ];
 
     const NO_HEADERS_NO_BODY_404 : usize = 2;
@@ -733,7 +774,7 @@ fn test_responses() {
               &responses[NO_REASON_PHRASE]);
 
     // response scan 2/2
-    helper::test_scan(&responses[BONJOUR_MADAME_FR], 
+    helper::test_scan(&responses[BONJOUR_MADAME_FR],
               &responses[UNDERSCORE_HEADER_KEY],
               &responses[NO_CARRIAGE_RET]);
 }
@@ -774,9 +815,9 @@ fn test_message_count_body(msg: &helper::Message) {
 fn create_large_chunked_message(body_size_in_kb: usize, headers: &str) -> String {
     let mut buf = headers.to_string();
 
-    for _ in (0..body_size_in_kb) {
+    for _ in 0..body_size_in_kb {
         buf.push_str("400\r\n");
-        for _ in (0u32..1024u32) {
+        for _ in 0u32..1024u32 {
             buf.push('C');
         }
         buf.push_str("\r\n");
@@ -785,4 +826,3 @@ fn create_large_chunked_message(body_size_in_kb: usize, headers: &str) -> String
     buf.push_str("0\r\n\r\n");
     buf
 }
-
