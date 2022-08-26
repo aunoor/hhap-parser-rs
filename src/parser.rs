@@ -28,7 +28,7 @@ pub enum HttpParserType {
 /// # Example
 ///
 /// ```
-/// # use http_parser::*;
+/// # use hap_http_parser::*;
 /// #
 /// struct Callback;
 ///
@@ -198,7 +198,7 @@ impl HttpParser {
     /// # Example
     ///
     /// ```
-    /// # use http_parser::*;
+    /// # use hap_http_parser::*;
     /// let mut parser = HttpParser::new(HttpParserType::Request);
     /// ```
     pub fn new(tp: HttpParserType) -> HttpParser {
@@ -229,7 +229,7 @@ impl HttpParser {
     /// # Example
     ///
     /// ```
-    /// # use http_parser::*;
+    /// # use hap_http_parser::*;
     /// # struct Callback;
     /// #
     /// # impl HttpParserCallback for Callback {

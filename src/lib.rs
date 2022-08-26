@@ -18,7 +18,7 @@
 //! Define a callback struct:
 //!
 //! ```
-//! # use http_parser::*;
+//! # use hap_http_parser::*;
 //! struct Callback;
 //!
 //! impl HttpParserCallback for Callback {
@@ -34,14 +34,14 @@
 //! Create an instance of `HttpParser` for requests:
 //!
 //! ```
-//! # use http_parser::*;
+//! # use hap_http_parser::*;
 //! let mut parser = HttpParser::new(HttpParserType::Request);
 //! ```
 //!
 //! Create an instance of `Callback` struct:
 //!
 //! ```
-//! # use http_parser::*;
+//! # use hap_http_parser::*;
 //! # struct Callback;
 //! #
 //! # impl HttpParserCallback for Callback {
@@ -58,7 +58,7 @@
 //! Execute the parser by providing a HTTP request:
 //!
 //! ```
-//! # use http_parser::*;
+//! # use hap_http_parser::*;
 //! # struct Callback;
 //! #
 //! # impl HttpParserCallback for Callback {
@@ -75,7 +75,7 @@
 //! parser.execute(&mut cb, line.as_bytes());
 //! ```
 
-#![crate_name = "http_parser"]
+#![crate_name = "hap_http_parser"]
 
 pub use self::parser::{HttpParser, HttpParserType};
 pub use self::http_version::HttpVersion;

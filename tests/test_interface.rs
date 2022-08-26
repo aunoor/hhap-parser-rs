@@ -1,11 +1,11 @@
-extern crate http_parser;
+extern crate hap_http_parser;
 
-use self::http_parser::*;
+use self::hap_http_parser::*;
 
 #[test]
 fn test_interface() {
     let mut hp = HttpParser::new(HttpParserType::Both);
-    
+
     struct Callback;
 
     impl HttpParserCallback for Callback {

@@ -1,8 +1,8 @@
-extern crate http_parser;
+extern crate hap_http_parser;
 
 use std::default::Default;
 
-use http_parser::{HttpParser, HttpParserType, HttpVersion};
+use hap_http_parser::{HttpParser, HttpParserType, HttpVersion};
 
 pub mod helper;
 

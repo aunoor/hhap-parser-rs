@@ -18,7 +18,7 @@ pub type CallbackResult = Result<ParseAction, String>;
 /// # Example
 ///
 /// ```
-/// # use http_parser::*;
+/// # use hap_http_parser::*;
 /// #
 /// struct Callback;
 ///

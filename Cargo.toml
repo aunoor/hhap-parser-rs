@@ -1,6 +1,6 @@
 [package]
 
-name = "hhap_parser"
+name = "hap_http_parser"
 description = "HAP Http request/response parser for rust"
 version = "0.0.3"
 authors = ["<aunoor@gmail.com>"]

@@ -1,6 +1,6 @@
-extern crate http_parser;
+extern crate hap_http_parser;
 
-use self::http_parser::{HttpParser, HttpParserCallback, HttpParserType,
+use self::hap_http_parser::{HttpParser, HttpParserCallback, HttpParserType,
                         HttpErrno};
 
 pub mod helper;

@@ -1,9 +1,9 @@
-extern crate http_parser;
+extern crate hap_http_parser;
 
 use std::default::Default;
 use std::str;
 
-use self::http_parser::*;
+use self::hap_http_parser::*;
 
 #[derive(PartialEq, Eq )]
 pub enum LastHeaderType {
@@ -32,7 +32,7 @@ pub struct Message {
     pub last_header_element: LastHeaderType,
     pub headers: Vec<[String; 2]>,
     pub should_keep_alive: bool,
-    
+
     pub upgrade: Option<String>,
 
     pub http_version: HttpVersion,
@@ -68,7 +68,7 @@ impl Default for Message {
             should_keep_alive: false,
 
             upgrade: None,
-            
+
             http_version: HttpVersion { major: 0, minor: 0 },
 
             message_begin_cb_called: false,
@@ -126,7 +126,7 @@ impl HttpParserCallback for CallbackRegular {
         if m.last_header_element != LastHeaderType::Field {
             m.headers.push([String::new(), String::new()]);
         }
-        
+
         match str::from_utf8(data) {
             Result::Ok(data_str) => {
                 let i = m.headers.len()-1;
@@ -327,7 +327,7 @@ impl HttpParserCallback for CallbackPause {
             if m.last_header_element != LastHeaderType::Field {
                 m.headers.push([String::new(), String::new()]);
             }
-            
+
             match str::from_utf8(data) {
                 Result::Ok(data_str) => {
                     let i = m.headers.len()-1;
@@ -484,7 +484,7 @@ impl HttpParserCallback for CallbackCountBody {
         if m.last_header_element != LastHeaderType::Field {
             m.headers.push([String::new(), String::new()]);
         }
-        
+
         match str::from_utf8(data) {
             Result::Ok(data_str) => {
                 let i = m.headers.len()-1;
@@ -597,7 +597,7 @@ pub fn print_error(errno: HttpErrno, raw: &[u8], error_location: usize) {
                 print!("{}", (raw[i] as char));
             },
         }
-        if !this_line { error_location_line += char_len; }       
+        if !this_line { error_location_line += char_len; }
     }
 
     if eof {
@@ -831,7 +831,7 @@ fn upgrade_message_fix(cb: &mut CallbackRegular, body: &str, read: usize, msgs: 
 
             assert_eq!(&body[off..], &body[read..]);
 
-            cb.messages[cb.num_messages-1].upgrade = 
+            cb.messages[cb.num_messages-1].upgrade =
                 Some(body[read .. read+upgrade_len].to_string());
             return;
         }
@@ -870,7 +870,7 @@ pub fn test_scan(r1: &Message, r2: &Message, r3: &Message) {
                 cb.messages.push(Message{..Default::default()});
 
                 let mut done = false;
-                
+
                 let buf1 = &total.as_bytes()[0 .. i];
                 let buf2 = &total.as_bytes()[i .. j];
                 let buf3 = &total.as_bytes()[j .. total_len];

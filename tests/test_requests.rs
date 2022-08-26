@@ -1,8 +1,8 @@
-extern crate http_parser;
+extern crate hap_http_parser;
 
 use std::default::Default;
 
-use http_parser::{HttpParser, HttpParserType, HttpErrno, HttpMethod, HttpVersion};
+use hap_http_parser::{HttpParser, HttpParserType, HttpErrno, HttpMethod, HttpVersion};
 
 pub mod helper;
 
@@ -79,7 +79,7 @@ fn test_requests() {
                   :value\r\n\
                  \r\n", Option::Some(HttpErrno::InvalidHeaderToken));
 
-    let dumbfuck2 = 
+    let dumbfuck2 =
         "GET / HTTP/1.1\r\n\
         X-SSL-Bullshit: -----BEGIN CERTIFICATE-----\r\n\
         \tMIIFbTCCBFWgAwIBAgICH4cwDQYJKoZIhvcNAQEFBQAwcDELMAkGA1UEBhMCVUsx\r\n\
@@ -1159,8 +1159,8 @@ fn test_simple(buf: &str, err_expected: Option<HttpErrno>) {
     cb.currently_parsing_eof = true;
     hp.execute(&mut cb, &[]);
 
-    assert!(err_expected == err || 
+    assert!(err_expected == err ||
             (hp.strict && (err_expected.is_none() || err == Option::Some(HttpErrno::Strict))),
-            "\n*** test_simple expected {}, but saw {} ***\n\n{}\n", 
+            "\n*** test_simple expected {}, but saw {} ***\n\n{}\n",
             err_expected.unwrap().to_string(), err.unwrap().to_string(), buf);
 }
