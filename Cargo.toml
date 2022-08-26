@@ -1,14 +1,14 @@
 [package]
 
-name = "http_parser"
-description = "Http request/response parser for rust"
-version = "0.0.2"
-authors = ["Minjie Zha <minjiezha@gmail.com>"]
+name = "hhap_parser"
+description = "HAP Http request/response parser for rust"
+version = "0.0.3"
+authors = ["<aunoor@gmail.com>"]
 license = "MIT"
 
 documentation = "http://magic003.github.io/http-parser-rs/doc/http_parser/"
-homepage = "http://magic003.github.io/http-parser-rs/doc/http_parser/"
-repository = "https://github.com/magic003/http-parser-rs"
+homepage = "https://github.com/aunoor/hhap-parser-rs"
+repository = "https://github.com/aunoor/hhap-parser-rs"
 
 [profile.dev]
 opt-level = 0
